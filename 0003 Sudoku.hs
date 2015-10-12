@@ -156,8 +156,8 @@ solve b = case nextStep b of
                     (solveMultiple $ concatMap stepToBoards ns)
                     (find isSolution ns)
 
-testboard :: Board
-testboard = stringToBoard
+easyboard :: Board
+easyboard = stringToBoard
             "|-----------------------|\n\
             \| 4 . 3 | 1 . . | 9 . 8 |\n\
             \| . 2 9 | . . . | 4 5 . |\n\
@@ -172,12 +172,32 @@ testboard = stringToBoard
             \| 2 . 4 | . . 3 | 5 . 9 |\n\
             \|-----------------------|\n"
 
+evilboard :: Board
+evilboard = stringToBoard
+    "|-----------------------|\n\
+    \| . . . | . 4 5 | . . . |\n\
+    \| 8 . 6 | . 2 . | . 3 . |\n\
+    \| . . 2 | . . 8 | . . 6 |\n\
+    \|-----------------------|\n\
+    \| . 7 . | . . . | . 1 . |\n\
+    \| 9 . . | . 8 . | . . 3 |\n\
+    \| . 1 . | . . . | . 9 . |\n\
+    \|-----------------------|\n\
+    \| 3 . . | 9 . . | 5 . . |\n\
+    \| . 4 . | . 6 . | 3 . 7 |\n\
+    \| . . . | 8 3 . | . . . |\n\
+    \|-----------------------|\n"
+
+
 main :: IO ()
 main = do
   putStrLn "Sudoku solver by @ToJans"
-  print testboard
-  putStrLn "Finding solution"
-  print $ solve testboard
+  putStrLn "Solving easy Sudoku"
+  print easyboard
+  print $ solve easyboard
+  putStrLn "Solving evil sudoku"
+  print evilboard
+  print $ solve evilboard
 
 
 -- output:
