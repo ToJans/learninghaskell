@@ -43,14 +43,13 @@ numberOfWrongGuesses (GameState word' guesses') =
     where charNotInWord c = c `notElem` word'
 
 gameStatus :: GameState -> GameStatus
-gameStatus (GameState word' guesses')
+gameStatus gameState@(GameState word' guesses')
     | isGuessed   = GameWon
     | isLastGuess = GameLost
     | otherwise   = Guessing
     where
         isGuessed = all isCharInGuesses word'
         isCharInGuesses x = x `elem` guesses'
-        gameState = GameState word' guesses'
         isLastGuess = numberOfWrongGuesses gameState == maxWrongGuesses
 
 -- for one reason or another getChar also appends <CR>
@@ -74,7 +73,7 @@ getANewChar gameState = do
         return c
 
 displayState :: GameState -> IO ()
-displayState (GameState word' guesses')  =
+displayState gameState@(GameState word' guesses')  =
     putStrLn $ unlines $ fullHangmanImage' ++ case gameStatus gameState of
         Guessing ->
             [ "Word to guess: " ++ wordWithGuesses
@@ -91,7 +90,6 @@ displayState (GameState word' guesses')  =
             , "You failed to guess the word " ++ word'
             ]
     where
-        gameState = GameState word' guesses'
         fullHangmanImage' = fullHangmanImage currentHangmanIndex
         currentHangmanIndex = numberOfWrongGuesses gameState
         wordWithGuesses = blankOrChar <$> word'
