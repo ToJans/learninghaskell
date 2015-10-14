@@ -28,10 +28,7 @@ data MedicalStaff = MedicalStaff Name ContactData
 
 data Patient = Patient Name
 
-data Symptom = Illness Name
-             | Allergy Name
-             | Rash
-             | Moodswings
+data Illness = Illness Name
 
 data Measurement = Length Double
                  | Weight Double
@@ -59,8 +56,8 @@ data Answer = OccuranceAnswer
             | TextAnswer String
             | NumberAnswer Double
 
-data MedicalFactType = MeasureMent    Measurement
-                     | Symptom        Symptom
+data MedicalFactType = Measurement    Measurement
+                     | Diagnosis      Illness
                      | QuestionAnswer Question Answer
 
 data MedicalFact = MedicalFact Occurance MedicalFactType
