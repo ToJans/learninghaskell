@@ -18,22 +18,29 @@ type Name = String
 
 type Date = Double
 
-data ContactData = ContactData String
 
-data Nurse = Nurse Name ContactData
+-- BC : Callcenter
 
-data Customer = Customer Name ContactData
+data Call = IncomingCall Nurse
+          | CustomerCall Customer
+          | DiagnosedCall Nurse Patient (Maybe Advice)
 
-data MedicalStaff = MedicalStaff Name ContactData
+-- AR : contactData
+data ContactData = Contact Name String
 
-data Patient = Patient Name
+data Nurse = Nurse ContactData
 
-data Illness = Illness Name
+data Customer = Customer ContactData
 
-data Measurement = Length Double
-                 | Weight Double
-                 | BodyTemperature Double
-                 | PulseRate Double
+data MedicalStaff = MedicalStaff ContactData
+
+-- BC : Advice
+
+-- AR : Patient
+data Patient = Patient [MedicalFact]
+
+-- VO : MedicalFact
+data MedicalFact = MedicalFact Occurance MedicalFactType
 
 data Occurance = Since Date
                | Between {fromDate::Date, toDate:: Date}
@@ -43,35 +50,38 @@ data Occurance = Since Date
                | Once
                | AtLeastOnce
 
+data MedicalFactType = Measurement    Measurement
+                     | Diagnosis      Illness
+                     | Advice         Advice
+                     | QuestionAnswer Question Answer
+
+data Measurement = Length Double
+                 | Weight Double
+                 | BodyTemperature Double
+                 | PulseRate Double
+
+data Illness = Illness Name
+
+data Advice = Suggestion   String
+            | SuggestVisit MedicalStaff
+            | ContactStaff MedicalStaff
+
+-- VO Question
+data Question = Question String QuestionType
+
 data QuestionType = OccuranceQuestion
                   | BoolQuestion
                   | ChoiceQuestion [String]
                   | NumberQuestion { minRange :: Double, maxRange :: Double}
                   | TextQuestion
 
-data Question = Question String QuestionType
-
+-- VO answer
 data Answer = OccuranceAnswer
             | BoolAnswer Bool
             | TextAnswer String
             | NumberAnswer Double
 
-data MedicalFactType = Measurement    Measurement
-                     | Diagnosis      Illness
-                     | QuestionAnswer Question Answer
-
-data MedicalFact = MedicalFact Occurance MedicalFactType
-
-data MedicalHistory = MedicalHistory [MedicalFact]
+-- AR : Advisor
+data Advisor = Advisor [AdviceRequirement] Advice
 
 data AdviceRequirement = AdviceRequirement Occurance (MedicalFact -> Bool)
-
-data MedicalAdvice = Suggestion   String
-                   | SuggestVisit MedicalStaff
-                   | ContactStaff MedicalStaff
-
-data PotentialAdvice = PotentialAdvice [AdviceRequirement] MedicalAdvice
-
-data Call = IncomingCall Nurse
-          | CustomerCall Customer
-          | DiagnosedCall Nurse Patient (Maybe MedicalAdvice)
