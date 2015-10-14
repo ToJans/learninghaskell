@@ -19,7 +19,7 @@ type Name = String
 type Date = Double
 
 
--- BC : Callcenter
+-- BC : Callcenter **************************
 
 data Call = IncomingCall Nurse
           | CustomerCall Customer
@@ -34,7 +34,7 @@ data Customer = Customer ContactData
 
 data MedicalStaff = MedicalStaff ContactData
 
--- BC : Advice
+-- BC : Advice ****************************
 
 -- AR : Patient
 data Patient = Patient [MedicalFact]
@@ -62,10 +62,6 @@ data Measurement = Length Double
 
 data Illness = Illness Name
 
-data Advice = Suggestion   String
-            | SuggestVisit MedicalStaff
-            | ContactStaff MedicalStaff
-
 -- VO Question
 data Question = Question String QuestionType
 
@@ -82,6 +78,12 @@ data Answer = OccuranceAnswer
             | NumberAnswer Double
 
 -- AR : Advisor
-data Advisor = Advisor [AdviceRequirement] Advice
+data Advisor = Advisor [PotentialAdvice]
+
+data PotentialAdvice = PontentialAdvice [AdviceRequirement] Advice
+
+data Advice = Suggestion   String
+            | SuggestVisit MedicalStaff
+            | ContactStaff MedicalStaff
 
 data AdviceRequirement = AdviceRequirement Occurance (MedicalFact -> Bool)
