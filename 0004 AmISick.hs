@@ -68,7 +68,7 @@ data AdviceRequirement = AdviceRequirement Occurance (MedicalFact -> Bool)
 
 data MedicalAdvice = Suggestion   String
                    | SuggestVisit MedicalStaff
-                   | ConcatStaff  MedicalStaff
+                   | ContactStaff MedicalStaff
 
 data PotentialAdvice = PotentialAdvice [AdviceRequirement] MedicalAdvice
 
