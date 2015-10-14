@@ -1,3 +1,5 @@
+-- Let's see if we can tackle a DDD-ish problem in Haskell
+--
 -- taken from http://architecturalkatas.site44.com/kata.html?kata=AmISick.json
 --
 -- 1-800-AMI-SICK
