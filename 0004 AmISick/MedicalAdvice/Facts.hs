@@ -1,15 +1,15 @@
 module MedicalAdvice.Facts where
 
-import MedicalAdvice.Measurements(Measurement,getRandomMeasurement)
-import MedicalAdvice.Illnesses(Illness,getRandomIllness)
-import MedicalAdvice.Advice(Advice,getRandomAdvice)
-import MedicalAdvice.Questions(QuestionAnswer,getRandomQuestionAnswer)
-
-import Data.Time(getCurrentTime,addDays,utctDay,Day)
-import Control.Monad(join,replicateM)
-import System.Random(randomRIO)
-
-import MedicalAdvice.Lib
+import           Control.Monad              (join, replicateM)
+import           Data.Time                  (Day, addDays, getCurrentTime,
+                                             utctDay)
+import           MedicalAdvice.Advice       (Advice, getRandomAdvice)
+import           MedicalAdvice.Illnesses    (Illness, getRandomIllness)
+import           MedicalAdvice.Lib
+import           MedicalAdvice.Measurements (Measurement, getRandomMeasurement)
+import           MedicalAdvice.Questions    (QuestionAnswer,
+                                             getRandomQuestionAnswer)
+import           System.Random              (randomRIO)
 
 type Date = Day
 

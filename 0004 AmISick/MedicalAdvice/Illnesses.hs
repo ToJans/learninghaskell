@@ -1,6 +1,6 @@
 module MedicalAdvice.Illnesses where
 
-import MedicalAdvice.Lib
+import           MedicalAdvice.Lib
 
 data Illness = Illness String deriving Show
 

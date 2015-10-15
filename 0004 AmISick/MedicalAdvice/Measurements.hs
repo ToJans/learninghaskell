@@ -1,8 +1,8 @@
 module MedicalAdvice.Measurements where
 
-import MedicalAdvice.Lib
-import System.Random(randomRIO)
-import Control.Monad(join)
+import           Control.Monad     (join)
+import           MedicalAdvice.Lib
+import           System.Random     (randomRIO)
 
 data Measurement = Length Double
                  | Weight Double

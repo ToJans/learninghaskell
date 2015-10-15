@@ -1,7 +1,7 @@
 module MedicalAdvice.Questions where
 
-import MedicalAdvice.Lib
-import System.Random(randomRIO)
+import           MedicalAdvice.Lib
+import           System.Random     (randomRIO)
 
 data Question = Question String QuestionType
                 deriving Show

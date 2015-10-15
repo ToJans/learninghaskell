@@ -1,6 +1,6 @@
 module MedicalAdvice.Lib where
 
-import System.Random(randomRIO)
+import           System.Random (randomRIO)
 
 pickRandom :: [a] -> IO a
 pickRandom l = do

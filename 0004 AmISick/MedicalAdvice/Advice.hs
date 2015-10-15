@@ -1,6 +1,6 @@
 module MedicalAdvice.Advice where
 
-import MedicalAdvice.Lib
+import           MedicalAdvice.Lib
 
 data Advice = Suggestion   String
             | SuggestMedicalStaffVisit

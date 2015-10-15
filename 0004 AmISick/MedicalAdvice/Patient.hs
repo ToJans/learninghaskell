@@ -1,6 +1,6 @@
 module MedicalAdvice.Patient where
 
-import MedicalAdvice.Facts
+import           MedicalAdvice.Facts
 
 newtype PatientId = PatientId String
 
