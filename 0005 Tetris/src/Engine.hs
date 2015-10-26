@@ -25,14 +25,18 @@ drawCell (Cell blockcolor (Position xi yi)) =  Color (getColor blockcolor) poly
       Magenta -> magenta
 
 drawLevel :: Level -> Picture
-drawLevel (Level board state _score) =
-  Pictures $ drawBoard board : drawState state
+drawLevel (Level board state score) =
+  Pictures $ drawBoard board : drawState state ++ [drawScore]
   where
+    drawScore = alignEtc 550 $ " Score: " ++ show score
     drawBoard (Board cells)= Pictures $ map drawCell cells
     drawState (BlockFalling pos block) = [drawBlock pos block]
-    drawState (GameOver) =  [alignEtc 300 "Game over", alignEtc 250 "Press space to restart"]
+    drawState (GameOver) =
+      [ alignEtc 300 "Game over"
+      , alignEtc 250 "Press space to restart"
+      ]
     drawState _ = []
-    alignEtc y = Color white . Translate 0 y . Scale 0.20 0.20 . Text
+    alignEtc y = Color white . Translate 0 y . Scale 0.2 0.2 . Text
 
 runEngine :: Level -> (LevelEvent -> Level -> IO Level) -> (Float -> Level -> IO Level) -> IO ()
 runEngine wrld eventHandler =

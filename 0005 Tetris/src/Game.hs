@@ -65,7 +65,17 @@ timeStepHandler _ts lvl@(Level board@(Board cells) state score) =
     where
       lvlState x = lvl {lState = x}
       blockFalling (position,block) = lvlState $ BlockFalling position block
-      mergeblock p b= lvl {lBoard = Board $ removeFullRows $ cells ++ blockToCells p b, lState = NewBlock}
+      mergeblock p b= Level (Board finalCells) NewBlock (score + scored)
+        where
+          newCells = cells ++ blockToCells p b
+          finalCells = removeFullRows newCells
+          linesRemoved = (length newCells - length finalCells) `div` gridWidth
+          scored = case linesRemoved of
+            0 -> 0
+            1 -> 40
+            2 -> 100
+            3 -> 300
+            _ -> 1200
 
 -- Main event handler
 eventHandler :: LevelEvent -> Level -> IO Level
