@@ -41,7 +41,7 @@ drawLevel (Level board state score) =
 runEngine :: Level -> (LevelEvent -> Level -> IO Level) -> (Float -> Level -> IO Level) -> IO ()
 runEngine wrld eventHandler =
   playIO window black
-    3 -- simulations/sec
+    4 -- simulations/sec
     wrld
     drawWrld
     internalEventHandler
