@@ -1,7 +1,5 @@
-import Graphics.Gloss
-import Game
-import Draw
-
+import           Draw
+import           Game
 
 main :: IO ()
 main = myPlay initLevel eventHandler timeStepHandler

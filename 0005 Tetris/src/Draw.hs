@@ -1,8 +1,8 @@
 module Draw(myPlay) where
 
-import Game
-import Graphics.Gloss
-import Graphics.Gloss.Interface.IO.Game
+import           Game
+import           Graphics.Gloss
+import           Graphics.Gloss.Interface.IO.Game
 
 cellSize :: Int
 cellSize = 40;
@@ -31,8 +31,6 @@ drawLevel (Level board state _score) =
     drawBoard (Board cells)= Pictures $ map drawCell cells
     drawState (BlockFalling pos block) = [drawBlock pos block]
     drawState _ = []
-
-
 
 myPlay :: Level -> (LevelEvent -> Level -> IO Level) -> (Float -> Level -> IO Level) -> IO ()
 myPlay wrld eventHandler =
