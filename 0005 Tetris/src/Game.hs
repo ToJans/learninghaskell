@@ -128,8 +128,8 @@ randomBlock = do
     notEmpty (_x,_y,'█') = True
     notEmpty _ = False
     blocks = transpose . map words $
-              [ "_█ ███ ██ ██ ██ ██_ _██"
-              , "_█ _█_ █_ _█ ██ _██ ██"
-              , "_█ _█_ █_ _█"
+              [ "_█ ██ ██ ███ ██ ██_ _██"
+              , "_█ █_ _█ _█_ ██ _██ ██"
+              , "_█ █_ _█"
               , "_█"
               ]

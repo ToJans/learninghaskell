@@ -51,3 +51,5 @@ E:\Dev\haskell\learning>
 
 To run exercises in the sub folders, you need to install `cabal`.
 Then you just go into the subfolder and type `cabal run` or `cabal repl`.
+If you get an error message about missing dependencies, you should probably run
+`cabal install --dependencies-only`.
