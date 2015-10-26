@@ -1,11 +1,11 @@
-module Draw(myPlay) where
+module Engine(runEngine) where
 
 import           Game
 import           Graphics.Gloss
 import           Graphics.Gloss.Interface.IO.Game
 
 cellSize :: Int
-cellSize = 40;
+cellSize = 30;
 
 drawBlock :: Position -> Block -> Picture
 drawBlock p b = Pictures $ map drawCell $ blockToCells p b
@@ -30,10 +30,12 @@ drawLevel (Level board state _score) =
   where
     drawBoard (Board cells)= Pictures $ map drawCell cells
     drawState (BlockFalling pos block) = [drawBlock pos block]
+    drawState (GameOver) =  [alignEtc 300 "Game over", alignEtc 250 "Press space to restart"]
     drawState _ = []
+    alignEtc y = Color white . Translate 0 y . Scale 0.20 0.20 . Text
 
-myPlay :: Level -> (LevelEvent -> Level -> IO Level) -> (Float -> Level -> IO Level) -> IO ()
-myPlay wrld eventHandler =
+runEngine :: Level -> (LevelEvent -> Level -> IO Level) -> (Float -> Level -> IO Level) -> IO ()
+runEngine wrld eventHandler =
   playIO window black
     3 -- simulations/sec
     wrld
@@ -49,8 +51,9 @@ myPlay wrld eventHandler =
     internalEventHandler:: Event -> Level -> IO Level
     internalEventHandler evt = maybe return eventHandler $ maybeEvent evt
     maybeEvent evt = case evt of
-        EventKey (SpecialKey KeyLeft) Down _ _  -> Just MoveLeft
-        EventKey (SpecialKey KeyRight) Down _ _ -> Just MoveRight
-        EventKey (SpecialKey KeyUp) Down _ _  -> Just MoveUp
-        EventKey (SpecialKey KeyDown) Down _ _ -> Just MoveDown
+        EventKey (SpecialKey KeyLeft)  Down _ _ -> Just MoveBlockLeft
+        EventKey (SpecialKey KeyRight) Down _ _ -> Just MoveBlockRight
+        EventKey (SpecialKey KeyUp)    Down _ _ -> Just RotateBlock
+        EventKey (SpecialKey KeyDown)  Down _ _ -> Just MoveBlockDown
+        EventKey (SpecialKey KeySpace) Down _ _ -> Just RestartGame
         otherwise -> Nothing

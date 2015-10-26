@@ -31,7 +31,11 @@ data Level = Level {
                     lScore :: Int
                   }
 
-data LevelEvent = MoveLeft | MoveRight | MoveDown | MoveUp
+data LevelEvent = MoveBlockLeft
+                | MoveBlockRight
+                | MoveBlockDown
+                | RotateBlock
+                | RestartGame
 
 gridWidth :: Int
 gridWidth = 10
@@ -70,14 +74,18 @@ eventHandler evt lvl@(Level board (BlockFalling pos@(Position x y) block) score)
     return $ maybe lvl blockFalling $ validate board p b
     where
       (p,b) = case evt of
-        MoveLeft  -> (Position (x-1) y   , block)
-        MoveRight -> (Position (x+1) y   , block)
-        MoveDown  -> (Position x    (y-1), block)
-        MoveUp    -> (Position x     y   , rotateBlock block)
+        MoveBlockLeft  -> (Position (x-1) y   , block)
+        MoveBlockRight -> (Position (x+1) y   , block)
+        MoveBlockDown  -> (Position x    (y-1), block)
+        RotateBlock    -> (Position x     y   , rotateBlock block)
+        otherwise      -> (pos,block)
       lvlState x = lvl {lState = x}
       blockFalling (position,block) = lvlState $ BlockFalling position block
       rotateBlock (Block color positions) = Block color $ map rotatePosition positions
       rotatePosition (Position x y) = Position y (-x)
+-- allow restart when game is over
+eventHandler RestartGame (Level _ GameOver _ ) = return initLevel
+-- ignore all the others
 eventHandler _ level = return level
 
 -- Returns a (Position,Block) if it is valid, otherwise Nothing
@@ -104,7 +112,7 @@ removeFullRows cells = remapRows $ map selectIfNotFullRow [0..gridHeight-1]
       if length sr == gridWidth
         then []
         else sr
-    remapRows cells = concat $ zipWith (\i cls -> map (remapCell i) cls) [0..] $ filter (not . null) cells
+    remapRows = concat . zipWith (map . remapCell) [0..] . filter (not . null)
     remapCell i (Cell color (Position x _))= Cell color (Position x i)
 
 -- Convert a Block into board Cells

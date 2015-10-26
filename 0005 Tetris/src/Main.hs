@@ -1,5 +1,5 @@
-import           Draw
+import           Engine
 import           Game
 
 main :: IO ()
-main = myPlay initLevel eventHandler timeStepHandler
+main = runEngine initLevel eventHandler timeStepHandler
