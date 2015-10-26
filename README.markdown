@@ -9,7 +9,7 @@ Goals:
 
 ## Running it
 
-Just do `runhaskell x` to run and exercise; for example:
+Just do `runhaskell x` to run an exercise in the main folder; for example:
 
 ```
 E:\Dev\haskell\learning>runhaskell "0003 Sudoku.hs"
@@ -48,3 +48,6 @@ BoardSolved
 
 E:\Dev\haskell\learning>
 ```
+
+To run exercises in the sub folders, you need to install `cabal`.
+Then you just go into the subfolder and type `cabal run` or `cabal repl`.
