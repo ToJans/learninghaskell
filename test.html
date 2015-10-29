@@ -100,7 +100,10 @@
 
         var minWidthOfBlob =  img.width/2;
 
-        var skipWidth = minWidthOfBlob / 2
+        var skipWidth = minWidthOfBlob / 2;
+        var skipheight = 3;
+        var maxy = img.height - 20;
+
 
         var m1R = 255, m1G =   1, m1B =   1; // floodfill color
         var m2R =   1, m2G = 255, m2B =   1; // color of largest blob
@@ -112,17 +115,18 @@
           d[i  ] = m1R;
           d[i+1] = m1G;
           d[i+2] = m1B;
-          floodFill(i - img.width * 4);
+          var x = (i/4) % img.width;
           floodFill(i - 4);
           floodFill(i + 4);
-          floodFill(i + img.width * 4);
+          if (x> 0) floodFill(i - img.width * 4);
+          if (x< img.width - 1) floodFill(i + img.width * 4);
         }
 
         var maxFloodSize = 0;
 
         var findSize=function(r,g,b) {
           var minx = img.width, maxx = 0, miny = img.height,maxy = 0;
-          for (var x = 0,xi = 0;x<img.width;x+=skipWidth,xi+=4*skipWidth) {
+          for (var x = 0,xi = 0;x<img.width;x++,xi+=4) {
             for (var y = 0,xy = xi; y<img.height;y++,xy+=4*img.width) {
               if (d[xy]!=r || d[xy+1] != g || d[xy+2]!= b) continue;
               if (x<minx) minx = x;
@@ -147,7 +151,8 @@
           }
         }
 
-        for (var ii = 0; ii<d.length;ii+=4) {
+        for (var i = 0; i<d.length;i+=4*skipWidth) {
+          var ii = (i + (d.length/2)) % d.length
           if (d[ii]!=0) continue;
           floodFill(ii);
           var mysize = findSize(m1R,m1G,m1B);
@@ -155,6 +160,8 @@
             maxFloodSize = mysize;
             replaceColor(m2R,m2G,m2B,m3R,m3G,m3B);
             replaceColor(m1R,m1G,m1B,m2R,m2G,m2B);
+            if (maxFloodSize > img.width * img.height * 0.25)
+              break;
           } else {
             replaceColor(m1R,m1G,m1B,m3R,m3G,m3B);
           }
