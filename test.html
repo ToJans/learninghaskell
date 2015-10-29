@@ -53,7 +53,7 @@
       Filters.blur = function(img) {
         var d = img.data;
         var nd = new Uint8ClampedArray(d.length)
-        var fsize = 2, middle = 1;
+        var fsize = 3, middle = 1;
 
         for (var i = 0; i<d.length - (fsize * 4);i+=4) {
             var vcenter,vsum = 0,ix,iy;
@@ -73,20 +73,21 @@
       Filters.adaptiveTreshold = function(img) {
           var d = img.data;
           var nd = new Uint8ClampedArray(d.length)
-          var fsize = 11, middle = 6;
+          var fsize = 11, middle = 5;
 
           for (var i = 0; i<d.length - (fsize * 4);i+=4) {
-              var vcenter,vsum = 0,ix,iy;
+              var vcenter,vsum=0,ix,iy;
               for (var x = 0,ix = i;x<fsize;x++,ix += 4) {
                 for (var y = 0,iy = ix;y<fsize;y++,iy += 4 * img.width) {
+                  var val = d[iy]
                   if (x == middle && y == middle) {
-                    vcenter = d[iy] * fsize * fsize - 1;
+                    vcenter = val * (fsize * fsize - 1);
                   } else {
-                    vsum += d[iy];
+                    vsum += val;
                   }
                 }
               }
-              var v = vcenter > vsum * 0.8?255:0;
+              var v = vcenter > vsum * 0.97 ? 255 : 0;
               nd[i] = v;
               nd[i+1] = v;
               nd[i+2] = v;
@@ -110,16 +111,16 @@
         var m3R =   1, m3G =   1, m3B = 255; // color of other blobs
 
         var floodFill = function(i) {
-          if (i<0 || i>= d.length) return;
+          if (i<0 || i>= d.length - img.width * 20) return;
           if (d[i] != 0) return;
           d[i  ] = m1R;
           d[i+1] = m1G;
           d[i+2] = m1B;
           var x = (i/4) % img.width;
-          floodFill(i - 4);
-          floodFill(i + 4);
-          if (x> 0) floodFill(i - img.width * 4);
-          if (x< img.width - 1) floodFill(i + img.width * 4);
+          if (x> 10) floodFill(i - 4);
+          if (x< img.width - 10) floodFill(i + 4);
+          floodFill(i - img.width * 4);
+          floodFill(i + img.width * 4);
         }
 
         var maxFloodSize = 0;
@@ -160,7 +161,7 @@
             maxFloodSize = mysize;
             replaceColor(m2R,m2G,m2B,m3R,m3G,m3B);
             replaceColor(m1R,m1G,m1B,m2R,m2G,m2B);
-            if (maxFloodSize > img.width * img.height * 0.25)
+            if (maxFloodSize > img.width * img.height * 0.5)
               break;
           } else {
             replaceColor(m1R,m1G,m1B,m3R,m3G,m3B);
@@ -185,9 +186,13 @@
           ctx.putImageData(imgData,0,0);
         }
 
+        var result = imgData;
 
-
-        var result = Filters.grayScale(imgData);
+        // result = Filters.blur(result);
+        // updatePic(result);
+        result = Filters.grayScale(result);
+        updatePic(result);
+        result = Filters.blur(result);
         updatePic(result);
         result = Filters.adaptiveTreshold(result);
         updatePic(result);
