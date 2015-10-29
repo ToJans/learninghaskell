@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<head>
+</head>
+<body>
+  <div>
+      <video id="live" width="640" height="480" autoplay style="display: inline;"></video>
+      <button onclick="takePic()">Take picture</button>
+      <canvas width="640" id="canvas" height="480" style="display: inline;"></canvas>
+  </div>
+
+   <script type="text/javascript">
+      "use strict";
+      var video = document.getElementById("live");
+      var canvas = document.getElementById("canvas");
+      var ctx = canvas.getContext('2d');
+
+      function bindCam() {
+
+          navigator.getMedia = (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia);
+
+          navigator.getMedia(
+              // constraints
+              {video:true, audio:false},
+
+              // success callback
+              function (mediaStream) {
+                  video.src = window.URL.createObjectURL(mediaStream);
+                  video.play();
+              },
+              //handle error
+              function (error) {
+                  console.log(error);
+              })
+      }
+
+      var Filters = {};
+
+      Filters.grayScale = function(img) {
+          var d = img.data;
+          var nd = new Uint8ClampedArray(d.length)
+          for (var i = 0; i<d.length;i+=4) {
+              var r = d[i];
+              var g = d[i+1];
+              var b = d[i+2];
+              var v = 0.2126*r + 0.7152*g + 0.0722*b;
+              nd[i] = v;
+              nd[i+1] = v;
+              nd[i+2] = v;
+          }
+          return {data:nd,width:img.width,height:img.height}
+      }
+
+      Filters.blur = function(img) {
+        var d = img.data;
+        var nd = new Uint8ClampedArray(d.length)
+        var fsize = 2, middle = 1;
+
+        for (var i = 0; i<d.length - (fsize * 4);i+=4) {
+            var vcenter,vsum = 0,ix,iy;
+            for (var x = 0,ix = i;x<fsize;x++,ix += 4) {
+              for (var y = 0,iy = ix;y<fsize;y++,iy += 4 * img.width) {
+                  vsum += d[iy];
+              }
+            }
+            var v = vsum /9;
+            nd[i] = v;
+            nd[i+1] = v;
+            nd[i+2] = v;
+        }
+        return {data:nd,width:img.width,height:img.height}
+      }
+
+      Filters.adaptiveTreshold = function(img) {
+          var d = img.data;
+          var nd = new Uint8ClampedArray(d.length)
+          var fsize = 11, middle = 5;
+
+          for (var i = 0; i<d.length - (fsize * 4);i+=4) {
+              var vcenter,vsum = 0,ix,iy;
+              for (var x = 0,ix = i;x<fsize;x++,ix += 4) {
+                for (var y = 0,iy = ix;y<fsize;y++,iy += 4 * img.width) {
+                  if (x == middle && y == middle) {
+                    vcenter = d[iy] * fsize * fsize - 1;
+                  } else {
+                    vsum += d[iy];
+                  }
+                }
+              }
+              var v = vcenter > vsum * 0.8?255:0;
+              nd[i] = v;
+              nd[i+1] = v;
+              nd[i+2] = v;
+          }
+          return {data:nd,width:img.width,height:img.height}
+      }
+
+      function takePic(){
+        ctx.drawImage(video, 0, 0, 640, 480);
+        var imgData = ctx.getImageData(0,0,640,480);
+        var result = Filters.grayScale(imgData);
+        result = Filters.adaptiveTreshold(result);
+        result = Filters.blur(result);
+
+        var d = imgData.data;
+        var nd = result.data;
+        for (var i=0;i<d.length;i+=4) {
+            d[i] = nd[i];
+            d[i+1] = nd[i+1];
+            d[i+2] = nd[i+2];
+        }
+        ctx.putImageData(imgData,0,0);
+      }
+
+      bindCam()
+
+  </script>
+</body>
