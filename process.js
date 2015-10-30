@@ -88,67 +88,6 @@ function floodFill(xs,img) {
   }
 }
 
-// wraps around borders for speed, image requires borders that don't match
-function scanlineFill (index, img) {
-  var isMatch = function(i) { return img.data[i] == 0;};
-  var isNoMatch = function(i) { return !isMatch(i);};
-  var isInBounds = function(i) { return i>=0 && i < img.data.length;};
-  var fillPixel = function(i) {
-    img.data[i  ] = m1R;
-    img.data[i+1] = m1G;
-    img.data[i+2] = m1B;
-  };
-  var isFilled = function(i) {
-    return img.data[i] == m1R && img.data[i+1] == m1G && img.data[i+2] == m1B;
-  }
-
-  var prevPixel = function(i) { return i - 4;};
-  var nextPixel = function(i) { return i + 4;};
-  var prevLine = function(i) { return i - img.width*4;};
-  var nextLine = function(i) { return i - img.width*4;};
-
-  function scanLeftRight(oleft,oright) {
-    var left = oleft,right = oright;
-
-    if (!isInBounds(left) || ! isInBounds(right)) return;
-
-    if (isFilled(left) && isFilled(right)) return;
-
-    var leftScanBound = left - (left/4 % img.width)*4;
-    var rightScanBound = leftScanBound + (img.width-1) * 4;
-
-    var isInScanBound = function(i) {
-      return i >= leftScanBound && i <= rightScanBound;
-    }
-
-    // find matching pixel in the range.
-    if (isMatch(left)) {
-      while (isInScanBound(prevPixel(left)) && isMatch(prevPixel(left))) {
-        left =prevPixel(left);
-      }
-    } else {
-      while (left <= right && isNoMatch(left)) {
-        left = nextPixel(left);
-      }
-    }
-    while (isMatch(left) && left < right) {
-      var i = left;
-      while (i <= right && isMatch(i) && isInScanBound(i)) {
-        fillPixel(i);
-        i = nextPixel(i);
-      }
-      scanLeftRight(prevLine(left),prevLine(prevPixel(i)));
-      scanLeftRight(nextLine(left),nextLine(prevPixel(i)));
-      left = i;
-      while (left<right && isNoMatch(left)) {
-        left=nextPixel(left);
-      }
-    }
-  }
-
-  scanLeftRight(index,index);
-}
-
 var findColorBounds=function(r,g,b,img) {
   var minx = img.width, maxx = 0, miny = img.height,maxy = 0,d=img.data;
   for (var x = 0,xi = 0;x<img.width;x++,xi+=4) {
@@ -237,17 +176,101 @@ Filters.largestBlob = function(img,callback) {
   }
 }
 
+var setColor = function(i,img) {
+  img.data[i] = 255;
+  img.data[i+1] = 0;
+  img.data[i+2] = 0;
+}
+
+function drawMarker(i,img) {
+  for (var y= -5,iy=i-5*4*img.width;y<5;y++,iy+=4*img.width) {
+    for (var x= -5,ix=iy-5*4;x<5;x++,ix+=4) {
+      setColor(ix,img);
+    }
+  }
+}
+
 Filters.findRectangleCorners = function(img) {
-  // var points;
-  // var d = img.data;
-  // var isMatch = function(i){ return d[i]==m2R && d[i+1] == m2G && d[i+2]== m2B;}
-  // for (var x=1,ix = 4;x<img.width-1;x++,ix+=4) {
-  //   for (var y=1,iy = ix+4*img.width;y<img.height-1;y++,iy+=4*img.width) {
-  //     if (isMatch(iy)) {
-  //       var lr = if (!isMatch(d[iy] && isMatch)
-  //     }
-  //   }
-  // }
+  var points;
+  var d = img.data;
+  var isMatch = function(i){ return d[i]==m2R && d[i+1] == m2G && d[i+2]== m2B;}
+  var isBoundMatch = function(i) {
+    return i>0 && i<img.width * 4 * img.height && isMatch(i);
+  }
+
+  var i = 0;
+
+  var getCoord = function(i,l,ca,sa) {
+    var dx = Math.trunc(l*ca)*4;
+    var dy = Math.trunc(l*sa)*4*img.width;
+    return i+dx+dy;
+  }
+
+  var findLongestLength = function(i,minAngle, maxAngle,angleStep,minLength,otherPoints) {
+    var match = null;
+    for (var angle=minAngle;angle<=minAngle+maxAngle;angle+=angleStep) {
+      var ca = Math.cos(angle),sa = Math.sin(angle);
+      var dx = 0,dy=0;
+      var ll=0,lr=0;
+      while (isBoundMatch(getCoord(i,ll+minLength/10,ca,sa))) ll+=minLength/10;
+      // while (isBoundMatch(getCoord(i,-lr-minLength/10,ca,sa))) lr+=minLength/10;
+      if ((lr+ll) > minLength-(minLength/10)) {
+        while (isBoundMatch(getCoord(i,ll+4,ca,sa))) ll++;
+        // while (isBoundMatch(getCoord(i,-lr-4,ca,sa))) lr++;
+        if ((lr+ll) > minLength &&
+            (match == null || (match.lr+match.ll < lr+ll))) {
+              var li =getCoord(i,ll,ca,sa);
+              var ri =getCoord(i,-lr,ca,sa);
+              if (otherPoints.indexOf(ri) == -1 || otherPoints.indexOf(li) == -1) {
+                match = { ll:ll,lr:lr,ca:ca,sa:sa,angle:angle}
+              }
+        }
+      }
+    }
+    evts.imageUpdated(img)
+    if (match) {
+      var li =getCoord(i,match.ll,match.ca,match.sa);
+      var ri =getCoord(i,-match.lr,match.ca,match.sa);
+      return {li:li,ri:ri};
+    } else {
+      return null;
+    }
+  }
+
+  // find first point
+  while (!isMatch(i) ) i+=4;
+
+  i+=img.width*4*2;
+
+  // drawMarker(i,img);
+
+  evts.imageUpdated(img);
+
+  var minlen = img.width>img.height?img.height:img.width;
+  minlen /= 20;
+
+  var p = [i];
+
+  var startAngle = 0;
+  var l = findLongestLength(i,startAngle,Math.PI,Math.PI/180,minlen,p)
+  var isClosed = false;
+  if (l) {
+    while (l!== null && p.length<40) {
+      if (p.indexOf(l.ri) != -1 && p.indexOf(l.li) != -1) {
+        isClosed = true;
+        break;
+      }
+      if (p.indexOf(l.ri) == -1) p.push(l.ri);
+      if (p.indexOf(l.li) == -1) p.push(l.li);
+      startAngle+=l.angle-Math.PI/4
+      l = findLongestLength(l.ri,startAngle,Math.PI*1.5,Math.PI/180,minlen,p)
+    }
+  }
+
+  p.map(function(i){
+    drawMarker(i,img);
+  });
+
   return img;
 };
 
