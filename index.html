@@ -68,6 +68,8 @@
       var ctx = $el.canvas.getContext('2d');
       var imgData = ctx.getImageData(0,0,$el.canvas.width,$el.canvas.height);
 
+      var lines = [];
+
       function updatePic (res) {
         var d = imgData.data;
         var nd = res.data;
@@ -77,6 +79,15 @@
             d[i+2] = nd[i+2];
         }
         ctx.putImageData(imgData,0,0);
+        ctx.setLineDash([10,2]);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#ff0000';
+        lines.map(function(v) {
+          ctx.beginPath();
+          ctx.moveTo(v.x,v.y);
+          ctx.lineTo(v.x2,v.y2);
+          ctx.stroke();
+        })
       }
 
       var worker = new Worker('process.js');
@@ -92,12 +103,16 @@
           case "imageUpdated":
                     updatePic(msg.data);
                     break;
+          case "lines":
+                    lines = msg.data;
+                    break;
           default:
                 alert('unknown event from worker: '+ msg.type);
         }
       }, false);
 
       function solveSudoku(){
+        lines = [];
         ctx = canvas.getContext('2d');
         imgData = ctx.getImageData(0,0,$el.canvas.width,$el.canvas.height);
         worker.postMessage({msgType:'processImage', data:imgData}); // Send data to our worker.
