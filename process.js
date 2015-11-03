@@ -45,9 +45,9 @@ ImageRange.prototype.foldImgTopDownLeftRight = function(accFunc,acc,stepDown,ste
   return acc;
 };
 
-// modify an image
+// modify an image's colors
 // takes a modFunc(index,x,y,{r,g,b}) that returns an {r,g,b};
-ImageRange.prototype.mapImage = function(modfunc,stepDown,stepRight) {
+ImageRange.prototype.mapColor = function(modfunc,stepDown,stepRight) {
   var x,y,xi,yi,rgb,d,nd = new Uint8ClampedArray(this.img.data);
   d= this.img.data;
   stepDown = stepDown || 1;
@@ -99,7 +99,7 @@ ImageRange.prototype.rangeFromColor=function(imgRange,r,g,b) {
 
 ImageRange.prototype.grayScale = function() {
   var v;
-  return this.mapImage(function(i,x,y,rgb) {
+  return this.mapColor(function(i,x,y,rgb) {
     v = 0.2126*rgb.r + 0.7152*rgb.g + 0.0722*rgb.b;
     return {r:v,g:v,b:v}
   });
@@ -143,7 +143,7 @@ ImageRange.prototype.sumSquare = function(x,y,size) {
 ImageRange.prototype.blur = function(size) {
   size = size || 1;
   var total = (size*2+1) * (size*2+1);
-  return this.shrinkBound(size).mapImage(function(i,x,y,rgb) {
+  return this.shrinkBound(size).mapColor(function(i,x,y,rgb) {
     rgb = this.sumSquare(x,y,size);
     return {
       r: rgb.r/total,
@@ -157,7 +157,7 @@ ImageRange.prototype.blur = function(size) {
 // assumes we work with Red component only, so convert to grayscale first
 ImageRange.prototype.adaptiveTreshold = function(size,tresholdValue) {
   var total = (size*2+1) * (size*2+1) - 1;
-  return this.shrinkBound(size).mapImage(function(i,x,y,rgb) {
+  return this.shrinkBound(size).mapColor(function(i,x,y,rgb) {
     var sums = this.sumSquare(x,y,size).r - rgb.r;
     if ( sums == 0 || rgb.r * total / sums > tresholdValue) {
       return {r:255,g:255,b:255};
@@ -206,11 +206,42 @@ ImageRange.prototype.floodFill = function(x,y,rgbCondition,rgb) {
 }
 
 ImageRange.prototype.replaceColor=function(fromRGB,toRGB) {
-  return this.mapImage(function(i,x,y,rgb) {
+  return this.mapColor(function(i,x,y,rgb) {
     if (fromRGB.r == rgb.r && fromRGB.g == rgb.g && fromRGB.b == rgb.b) {
       return toRGB;
     } else {
       return rgb;
+    }
+  });
+}
+
+ImageRange.prototype.thickenColor = function(fromRGB,size) {
+  size = size || 1;
+  var d= this.img.data;
+  var nd= new Uint8ClampedArray(d);
+  var w = this.img.width
+  for (var i=4*(w*size+size);i<d.length-4*(w*size+size);i+=4) {
+    if (d[i]=fromRGB.r && d[i+1]==fromRGB.g && d[i+2] ==fromRGB.b) {
+      var yi = i - (size*w + size) * 4;
+      for (var j=-size;j<=size;j++,yi+=4*w) {
+        var xi = yi;
+        for (var k=-size;k<=size;k++,xi+=4) {
+          nd[xi] = fromRGB.r;
+          nd[xi+1] = fromRGB.g;
+          nd[xi+2] = fromRGB.b;
+        }
+      }
+    }
+  }
+  return new ImageRange({
+    left: this.left - size,
+    right: this.right + size,
+    top: this.top - size,
+    bottom: this.bottom + size,
+    img: {
+      width: this.img.width,
+      height: this.img.height,
+      data: nd
     }
   });
 }
@@ -226,6 +257,7 @@ ImageRange.blobColors = {
 // if you define a callback, it will call it for every blob filled
 ImageRange.prototype.largestBlob = function(minSize, blobPredicate, callback) {
   var stepRight= minSize / 2;
+
   var stepDown = 1;
   var maxy = this.img.height;
   var self=this;
@@ -254,13 +286,18 @@ ImageRange.prototype.largestBlob = function(minSize, blobPredicate, callback) {
   return largestBlob;
 }
 
-ImageRange.prototype.houghEdges = function(matchColor,minLength) {
-  var maxAngles = 180;
+// find lines in image; returs lines array
+// only works on pixels colored in matchColor
+// requires the lines to cover at least minPixelCount
+ImageRange.prototype.houghLines = function(matchColor,minPixelCount,minAngleDiff,minDistanceDiff) {
+  minAngleDiff = minAngleDiff || 5;
+  minDistanceDiff = minDistanceDiff || 5;
+  var maxAngles = 180*4;
   var sines = [];
   var da = Math.PI/maxAngles;
   var maxSize = Math.sqrt( this.width * this.width + this.height * this.height);
+  // cache sines & cosines for performance reasons
   for (var i=0,a=0;i<maxAngles;i++,a+=da) {
-
     sines[i] = Math.sin(a);
   }
   var sin = function(a) {
@@ -269,6 +306,11 @@ ImageRange.prototype.houghEdges = function(matchColor,minLength) {
   var cos = function(a) {
     return sin((a-maxAngles/2) % maxAngles);
   };
+
+  // transform will count the occurances of pixels mapped
+  // to normal space with angle theta and distance rho
+
+  // initialize the normal space to zero
   var transformed = [];
   for (var theta=0;theta<maxAngles;theta++) {
     var vals = [];
@@ -277,6 +319,8 @@ ImageRange.prototype.houghEdges = function(matchColor,minLength) {
     }
     transformed.push(vals);
   }
+
+  // convert the image into normal space for matching pixels
   this.foldImgTopDownLeftRight(function(acc,index,x,y,rgb) {
     if (rgb.r != matchColor.r || rgb.g != matchColor.g || rgb.b != matchColor.b)
       return;
@@ -285,61 +329,109 @@ ImageRange.prototype.houghEdges = function(matchColor,minLength) {
       transformed[theta][Math.trunc(rho)]++;
     }
   });
-  var selected = [];
-
-  for (var theta=0;theta<maxAngles;theta++) {
-    for (var rho = 0; rho < maxSize;rho++ ) {
-      if (transformed[theta][rho]>minLength) {
-        selected.push({rho:rho,theta:theta});
-      }
-    }
-  };
 
   var img = this.img;
 
   var self = this;
-
   var isMatch = function(i) {
     return img.data[i] == matchColor.r &&
            img.data[i+1] == matchColor.g &&
            img.data[i+2] == matchColor.b;
   }
 
-  var lines = [];
+  // convert normal space into a series of lines, and it's count
+  // of matching pixels
+  // i.e. {cnt:20,lines:[{x:10,y:1,x2:20,y2:1},{x:30,y:1,x2:40,y:1}]}
+  var rhoThetaToLines = function(rho,theta,minLineSize) {
+    var a = cos(theta), b = sin(theta);
+    var x = a*rho, y = b*rho;
+    x +=b*maxSize, y-= a*maxSize;
+    var insideLen = 0,current;
+    var result = {cnt:0,lines:[],rho:rho,theta:theta};
 
-  selected.map(function(v) {
-     var a = cos(v.theta), b = sin(v.theta);
-     var x = a*v.rho, y = b*v.rho;
-     x +=b*maxSize, y-= a*maxSize;
-     var insideLen = 0,current;
-
-     for (var i = -maxSize;i<=maxSize;i++,x-=b,y+=a) {
-       if (x>self.left && x<self.right && y>self.top && y < self.bottom) {
-         var sy= Math.round(y);
-         var sx= Math.round(x);
-         var si = sy*img.width+sx;
-         si*=4;
-         if (insideLen > 0 ) {
-           if (isMatch(si)) {
-             insideLen++;
-             current.x2 = sx;current.y2 = sy;
-           } else {
-             if (insideLen> minLength) {
-               lines.push(current);
-             }
-             insideLen = 0;
-           }
-         } else if (insideLen == 0 && isMatch(si)) {
-           insideLen = 1;
-           current = {x:sx,y:sy}
-         }
-       }
+    for (var i = -maxSize;i<=maxSize;i++,x-=b,y+=a) {
+      if (x>self.left && x<self.right && y>self.top && y < self.bottom) {
+        var sy= Math.round(y);
+        var sx= Math.round(x);
+        var si = sy*img.width+sx;
+        si*=4;
+        if (insideLen > 0 ) {
+          if (isMatch(si)) {
+            insideLen++;
+            current.x2 = sx;current.y2 = sy;
+          } else {
+            if (insideLen>minLineSize) {
+              result.cnt += insideLen;
+              result.lines.push(current);
+            }
+            insideLen = 0;
+          }
+        } else if (insideLen == 0 && isMatch(si)) {
+          insideLen = 1;
+          current = {x:sx,y:sy}
+        }
+      }
     }
+    return result;
+  }
+
+  var selected = [];
+
+  // check every pixel in normal space, find the ones
+  // with the largest amounts of pixels on a line,
+  // locality for theta = minAngleDiff
+  // locality for rho = minDistanceDiff
+  for (var theta=0;theta<maxAngles;theta++) {
+    for (var rho = 0; rho < maxSize;rho++ ) {
+      var cnt = transformed[theta][rho];
+      if (cnt<minPixelCount) continue;
+      // get actual matching pixel counts and lines that match
+      var res = rhoThetaToLines(rho,theta,minDistanceDiff);
+      var cnt = res.cnt;
+      if (cnt == 0) {
+        continue;
+      }
+      var shouldPush = true;
+      // only add if locally largest
+      for (var i=0;i<selected.length;i++) {
+        var x = selected[i];
+        var dRho = Math.abs(x.rho - rho);
+        var dTheta =  Math.abs(x.theta - theta);
+        if ( dRho > minAngleDiff || dTheta > minDistanceDiff) continue;
+        // a close record found, so we either replace it or do nothing
+        shouldPush = false;
+        // if the current count of pixels is larger than the previous,
+        // replace the item in the list
+        if ( cnt > x.cnt) {
+          selected[i] = res;
+          break;
+        }
+      }
+      if (shouldPush) selected.push(res);
+    }
+  };
+
+  var min = function() {
+    return new Array(arguments).reduce(function(acc,x){return x<acc?x:acc;});
+  }
+  var max = function() {
+    return new Array(arguments).reduce(function(acc,x){return x>acc?x:acc;});
+  }
+
+  // we are only interested in the endpoints of the lines
+  var lines = selected.map(function(r) {
+    return r.lines.reduce(function(acc,l){
+      return {
+        x: min(acc.x,l.x,l.x2),
+        y: min(acc.y,l.y,l.y2),
+        x2: max(acc.x,l.x,l.x2),
+        y2: max(acc.y,l.y,l.y2)
+      };
+    });
   });
 
-  evts.lines(lines);
+  return lines;
 
-  return this;
 }
 
 var evts = {};
@@ -388,7 +480,7 @@ cmds.processImage = function (e) {
   result = result.grayScale();
   evts.imageUpdated(result);
   evts.info('converting to black and white');
-  result = result.adaptiveTreshold(11,0.97);
+  result = result.adaptiveTreshold(10,0.9);
   evts.imageUpdated(result);
   evts.info('locating sudoku');
   var minsize = (img.width < img.height ? img.width:img.height)/2;
@@ -398,10 +490,21 @@ cmds.processImage = function (e) {
     evts.info('unable to locate sudoku');
     return;
   }
-  evts.info('finding corners');
-  // result = result.findRectangleCorners();
-  result = result.houghEdges(ImageRange.blobColors.largest,result.width/4);
+  evts.info('thickening sudoku edges');
+  result = result.thickenColor(ImageRange.blobColors.largest,6);
   evts.imageUpdated(result);
+  evts.info('finding lines');
+  // result = result.findRectangleCorners();
+  var minLength = result.width<result.height?result.width:result.height;
+  var minSegLength = minLength*3/4;
+  var minPixelCount = minSegLength; // at least 90% of pixels need to be on the line
+  var minAngleDiff = 45; // minimum angles between hough lines in degrees
+  var minDistanceDiff = minSegLength/2; // min distance between hough lines in pixels
+  var matchColor = ImageRange.blobColors.largest; // the color we will match
+  var lines = result.houghLines(matchColor,minPixelCount,minAngleDiff,minDistanceDiff);
+  evts.lines(lines);
+  evts.imageUpdated(result);
+
   evts.info('done');
 }
 
