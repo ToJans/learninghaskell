@@ -159,7 +159,7 @@ ImageRange.prototype.adaptiveTreshold = function(size,tresholdValue) {
   var total = (size*2+1) * (size*2+1) - 1;
   return this.shrinkBound(size).mapImage(function(i,x,y,rgb) {
     var sums = this.sumSquare(x,y,size).r - rgb.r;
-    if ( rgb.r * total  > sums * tresholdValue) {
+    if ( sums == 0 || rgb.r * total / sums > tresholdValue) {
       return {r:255,g:255,b:255};
     } else {
       return {r:0,g:0,b:0};
@@ -254,19 +254,20 @@ ImageRange.prototype.largestBlob = function(minSize, blobPredicate, callback) {
   return largestBlob;
 }
 
-ImageRange.prototype.houghEdges = function(matchColor,treshold,minLength) {
+ImageRange.prototype.houghEdges = function(matchColor,minLength) {
   var maxAngles = 180;
   var sines = [];
   var da = Math.PI/maxAngles;
   var maxSize = Math.sqrt( this.width * this.width + this.height * this.height);
   for (var i=0,a=0;i<maxAngles;i++,a+=da) {
+
     sines[i] = Math.sin(a);
   }
   var sin = function(a) {
     return sines[a];
   }
   var cos = function(a) {
-    return sin((a+maxAngles/2) % maxAngles);
+    return sin((a-maxAngles/2) % maxAngles);
   };
   var transformed = [];
   for (var theta=0;theta<maxAngles;theta++) {
@@ -288,25 +289,13 @@ ImageRange.prototype.houghEdges = function(matchColor,treshold,minLength) {
 
   for (var theta=0;theta<maxAngles;theta++) {
     for (var rho = 0; rho < maxSize;rho++ ) {
-      if (transformed[theta][rho]>treshold) {
+      if (transformed[theta][rho]>minLength) {
         selected.push({rho:rho,theta:theta});
       }
     }
   };
 
   var img = this.img;
-
-  var drawMarker = function(i) {
-    var ms = 3;
-    i = i - 4 * img.width * ms - ms * 4;
-    for (var y = 0;y<ms*2;y++,i+=(img.width - ms*2) * 4){
-      for (var x = 0;x<ms*2;x++,i+=4) {
-        img.data[i] = 255;
-        img.data[i+1] = 0;
-        img.data[i+2] = 0;
-      }
-    }
-  }
 
   var self = this;
 
@@ -350,111 +339,8 @@ ImageRange.prototype.houghEdges = function(matchColor,treshold,minLength) {
 
   evts.lines(lines);
 
-
   return this;
 }
-
-
-
-ImageRange.prototype.findRectangleCorners = function() {
-  var img = this.img;
-  var mc = ImageRange.blobColors.largest;
-  var points;
-  var d = img.data;
-  var isMatch = function(i){ return d[i]==mc.r && d[i+1] == mc.g && d[i+2]== mc.b;}
-  var isBoundMatch = function(i) {
-    return i>0 && i<img.width * 4 * img.height && isMatch(i);
-  }
-
-  var drawMarker = function(i) {
-    var ms = 3;
-    i = i - 4 * img.width * ms - ms * 4;
-    for (var y = 0;y<ms*2;y++,i+=(img.width - ms*2) * 4){
-      for (var x = 0;x<ms*2;x++,i+=4) {
-        img.data[i] = 255;
-        img.data[i+1] = 0;
-        img.data[i+2] = 0;
-      }
-    }
-  }
-
-  var i = 0;
-
-  var getCoord = function(i,l,ca,sa) {
-    var dx = Math.trunc(l*ca)*4;
-    var dy = -Math.trunc(l*sa)*4*img.width;
-    return i+dx+dy;
-  }
-
-  var findLongestLength = function(i,minAngle, maxAngle,angleStep,minLength,otherPoints) {
-    var match = null;
-    for (var angle=minAngle;angle<=maxAngle;angle+=angleStep) {
-      var ca = Math.cos(angle),sa = Math.sin(angle);
-      var dx = 0,dy=0;
-      var ll=0,lr=0;
-      while (isBoundMatch(getCoord(i,ll+1,ca,sa))) ll+=1;
-      while (isBoundMatch(getCoord(i,-lr-1,ca,sa))) lr+=1;
-      if ((lr+ll) > minLength) {
-        if (match == null || lr+ll > match.lr+match.ll) {
-              var li =getCoord(i,ll,ca,sa);
-              var ri =getCoord(i,-lr,ca,sa);
-              if (otherPoints.indexOf(ri) == -1 || otherPoints.indexOf(li) == -1) {
-                match = { ll:ll,lr:lr,ca:ca,sa:sa,angle:angle}
-              }
-        }
-      }
-    }
-    if (match) {
-      var li =getCoord(i,match.ll,match.ca,match.sa);
-      var ri =getCoord(i,-match.lr,match.ca,match.sa);
-      return {li:li,ri:ri,angle: match.angle};
-      drawMarker(li);
-      evts.imageUpdated(this);
-    } else {
-      return null;
-    }
-  }
-
-  // find first point
-  while (!isMatch(i) ) i+=4;
-
-  i+=img.width*4*2;
-
-  // drawMarker(i,img);
-
-  evts.imageUpdated(this);
-
-  var minlen = img.width>img.height?img.height:img.width;
-  minlen /= 30;
-
-  var p = [i];
-  var maxdelta = Math.PI/180*6/4;
-  var l = findLongestLength(i,0,Math.PI*2,Math.PI/180,minlen,p)
-  var isClosed = false;
-  var loop = 0;
-  if (l) {
-    while (l!== null && p.length<1000) {
-      if (p.indexOf(l.ri) != -1 && p.indexOf(l.li) != -1 || loop++>1000) {
-        isClosed = true;
-        break;
-      }
-      if (p.indexOf(l.ri) == -1) p.push(l.ri);
-      if (p.indexOf(l.li) == -1) p.push(l.li);
-      var nl = findLongestLength(l.ri,p.angle-maxdelta/2,p.angle+maxdelta/2,Math.PI/180,minlen,p);
-      nl = nl || findLongestLength(l.ri,p.angle-Math.PI/2-maxdelta/2,p.angle-Math.PI/2+maxdelta/2,Math.PI/180,minlen,p);
-      nl = nl || findLongestLength(l.ri,p.angle+Math.PI/2-maxdelta/2,p.angle+Math.PI/2+maxdelta/2,Math.PI/180,minlen,p);
-      l = nl;
-
-    }
-  }
-
-  p.map(function(i){
-    drawMarker(i);
-  });
-
-  return this;
-};
-
 
 var evts = {};
 
@@ -502,7 +388,7 @@ cmds.processImage = function (e) {
   result = result.grayScale();
   evts.imageUpdated(result);
   evts.info('converting to black and white');
-  result = result.adaptiveTreshold(6,1.1);
+  result = result.adaptiveTreshold(11,0.97);
   evts.imageUpdated(result);
   evts.info('locating sudoku');
   var minsize = (img.width < img.height ? img.width:img.height)/2;
@@ -514,7 +400,7 @@ cmds.processImage = function (e) {
   }
   evts.info('finding corners');
   // result = result.findRectangleCorners();
-  result = result.houghEdges(ImageRange.blobColors.largest,100,100);
+  result = result.houghEdges(ImageRange.blobColors.largest,result.width/4);
   evts.imageUpdated(result);
   evts.info('done');
 }
