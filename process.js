@@ -289,10 +289,10 @@ ImageRange.prototype.largestBlob = function(minSize, blobPredicate, callback) {
 // find lines in image; returs lines array
 // only works on pixels colored in matchColor
 // requires the lines to cover at least minPixelCount
-ImageRange.prototype.houghLines = function(matchColor,minPixelCount,minAngleDiff,minDistanceDiff) {
+ImageRange.prototype.houghLines = function(matchColor,minPixelCount,minAngleDiff,minDistanceDiff,callback) {
   minAngleDiff = minAngleDiff || 5;
   minDistanceDiff = minDistanceDiff || 5;
-  var maxAngles = 180*4;
+  var maxAngles = 180;
   var sines = [];
   var da = Math.PI/maxAngles;
   var maxSize = Math.sqrt( this.width * this.width + this.height * this.height);
@@ -311,22 +311,19 @@ ImageRange.prototype.houghLines = function(matchColor,minPixelCount,minAngleDiff
   // to normal space with angle theta and distance rho
 
   // initialize the normal space to zero
-  var transformed = [];
-  for (var theta=0;theta<maxAngles;theta++) {
-    var vals = [];
-    for (var rho = 0; rho < maxSize;rho++ ) {
-      vals.push(0);
-    }
-    transformed.push(vals);
-  }
+  var transformed = new Uint32Array(maxAngles*maxSize);
 
   // convert the image into normal space for matching pixels
   this.foldImgTopDownLeftRight(function(acc,index,x,y,rgb) {
     if (rgb.r != matchColor.r || rgb.g != matchColor.g || rgb.b != matchColor.b)
       return;
+    if (callback) {
+      callback("tracing image for all angles at "+x+", "+y);
+    }
+
     for (var theta=0;theta<maxAngles;theta++) {
       var rho = x * cos(theta) + y * sin(theta);
-      transformed[theta][Math.trunc(rho)]++;
+      transformed[theta*maxSize+Math.trunc(rho)]++;
     }
   });
 
@@ -382,8 +379,11 @@ ImageRange.prototype.houghLines = function(matchColor,minPixelCount,minAngleDiff
   // locality for theta = minAngleDiff
   // locality for rho = minDistanceDiff
   for (var theta=0;theta<maxAngles;theta++) {
+    if (callback) {
+      callback("tracing angle "+(theta+1) + " from "+maxAngles);
+    }
     for (var rho = 0; rho < maxSize;rho++ ) {
-      var cnt = transformed[theta][rho];
+      var cnt = transformed[theta*maxSize+rho];
       if (cnt<minPixelCount) continue;
       // get actual matching pixel counts and lines that match
       var res = rhoThetaToLines(rho,theta,minDistanceDiff);
@@ -501,7 +501,10 @@ cmds.processImage = function (e) {
   var minAngleDiff = 45; // minimum angles between hough lines in degrees
   var minDistanceDiff = minSegLength/2; // min distance between hough lines in pixels
   var matchColor = ImageRange.blobColors.largest; // the color we will match
-  var lines = result.houghLines(matchColor,minPixelCount,minAngleDiff,minDistanceDiff);
+  var cb = function(s) {
+    evts.info('finding lines: '+s);
+  }
+  var lines = result.houghLines(matchColor,minPixelCount,minAngleDiff,minDistanceDiff,cb);
   evts.lines(lines);
   evts.imageUpdated(result);
 
