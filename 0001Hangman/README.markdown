@@ -3,8 +3,8 @@
 This is an exercise to learn Haskell, and to see how `haddock` and `doctests` work.
 
 In real life it probably wouldn't make sense to expose every single function in
-the `Hangman` module, but for the purpose of learning how to write documentation,
-I've done it anyway.
+the `Hangman` module, but for the purpose of learning how to write documentation
+and use doctests, I've done it anyway.
 
 This should also be a good example about how literate docs need to be to be
 usable by Haskell noobs like me.
