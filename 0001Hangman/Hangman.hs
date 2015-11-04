@@ -1,12 +1,12 @@
--- | Hangman game by @ToJans
+-- | Hangman game by <https://twitter.com/tojans @ToJans>
 --
 -- Allows you to guess random words letter by letter.
 -- If you have to many wrong attempts for one word, the man hangs, and the game
 -- is over.
 --
--- This is a learning experiment; more info at https://github.com/ToJans/learninghaskell/tree/master/0001Hangman
+-- This is a learning experiment; more info at <https://github.com/ToJans/learninghaskell/tree/master/0001Hangman github>
 --
--- You can find the generated docs over at http://users.telenet.be/bull/learninghaskell/0001Hangman/Hangman.html
+-- You can find the generated docs over <http://users.telenet.be/bull/learninghaskell/0001Hangman/Hangman.html here>.
 
 module Hangman where
 
