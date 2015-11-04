@@ -104,7 +104,7 @@ lastAttemptOutcome wordState@(WordState word' attempts')
 -- For one reason or another `Prelude.getChar` also appends a carriage return,
 -- so I implemented my own and made sure empty input is refused.
 --
--- > >>> getChar
+-- > >>> getAChar
 -- > <<< a
 -- > 'a'
 getAChar :: IO Char
@@ -117,6 +117,7 @@ getAChar = do
 -- | Gets a letter that's not in the previous attempts for this word.
 --
 -- > >>> getAValidAttempt $ WordState "cat" "abcd"
+-- > Next char to guess
 -- > <<< e
 -- > 'e'
 -- > >>> getAValidAttempt $ WordState "cat" "abcde"
