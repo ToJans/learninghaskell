@@ -42,7 +42,7 @@ hangmanImages =
     , [ "   ", "   ", "   ", "/  ", "/ \\", "/ \\", "/ \\" ]
     ]
 
--- | The hangman from the current phase hanging on a pole
+-- | The hangman from a phase hanging on a pole
 --
 -- >>> putStrLn . unlines $ fullHangmanImage  6
 -- =========
@@ -114,7 +114,7 @@ getAChar = do
         [] -> getAChar
         (c:_) -> return c
 
--- | Gets an attempt that letter that's not in the previous attempts for this word.
+-- | Gets a letter that's not in the previous attempts for this word.
 --
 -- > >>> getAValidAttempt $ WordState "cat" "abcd"
 -- > <<< e
@@ -125,7 +125,7 @@ getAChar = do
 -- > Character already used in attempts.
 -- > Next char to guess
 -- > <<< f
--- 'f'
+-- > 'f'
 getAValidAttempt :: WordState -> IO Char
 getAValidAttempt wordState = do
     putStrLn "Next char to guess"
