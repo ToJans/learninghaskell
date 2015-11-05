@@ -1,7 +1,7 @@
 -- | Hangman game by <https://twitter.com/tojans @ToJans>
 --
 -- Allows you to guess random words letter by letter.
--- If you have to many wrong attempts for one word, the man hangs, and the game
+-- If you have too many wrong attempts for one word, the man hangs, and the game
 -- is over.
 --
 -- This is a learning experiment; more info at <https://github.com/ToJans/learninghaskell/tree/master/0001Hangman github>
